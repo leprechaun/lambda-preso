@@ -371,3 +371,24 @@ Big in-memory jobs don't fit.
 - Very bursty services
 - Event driven architectures
 - Simple isolated functionalities
+- "duct tape" between AWS services
+
+# Container Images
+
+Since Dec 2020
+
+- Package your function as a Docker / OCI image, up to 10GB
+- Push to ECR, point Lambda at it
+- AWS base images, or bring your own + Runtime Interface Client
+
+Gets around the 250MB limit. Same 15 min, 10GB RAM caveats.
+
+# Function URLs
+
+Since 2022
+
+- A dedicated HTTPS endpoint for one function
+- No API Gateway needed
+- Auth: IAM or public
+
+Pair with the [Lambda Web Adapter](https://github.com/awslabs/aws-lambda-web-adapter) to run Flask, Express, etc. unchanged.
