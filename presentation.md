@@ -373,7 +373,22 @@ Big in-memory jobs don't fit.
 - Simple isolated functionalities
 - "duct tape" between AWS services
 
-# Container Images
+## Pet Projects
+
+Lambda + S3 + API Gateway: a few cents a month
+
+- Lambda free tier: 1M requests & 400,000 GB-seconds per month
+- S3: pennies for small files
+- API Gateway: ~$1 per million requests
+
+Examples:
+
+- [snacker-tracker/interface](https://github.com/snacker-tracker/interface)
+- [snacker-tracker/reporter-serverless](https://github.com/snacker-tracker/reporter-serverless)
+
+# Addendums
+
+## Container Images
 
 Since Dec 2020
 
@@ -383,7 +398,7 @@ Since Dec 2020
 
 Gets around the 250MB limit. Same 15 min, 10GB RAM caveats.
 
-# Function URLs
+## Function URLs
 
 Since 2022
 
@@ -392,3 +407,5 @@ Since 2022
 - Auth: IAM or public
 
 Pair with the [Lambda Web Adapter](https://github.com/awslabs/aws-lambda-web-adapter) to run Flask, Express, etc. unchanged.
+
+# Questions?
