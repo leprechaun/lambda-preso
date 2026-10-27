@@ -1,0 +1,69 @@
+name: pipeline
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: hello-world
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Compile Python
+        run: python -m py_compile src/*.py
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Init
+        run: terraform init -input=false -backend=false
+
+      - name: Format
+        run: terraform fmt -check
+
+      - name: Validate
+        run: terraform validate
+
+  slides:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install pandoc
+        run: sudo apt-get update && sudo apt-get install -y pandoc
+
+      - name: Install mermaid-filter
+        run: npm ci
+
+      - name: Build slides
+        run: |
+          # Ubuntu's AppArmor blocks Chromium's sandbox; mermaid-filter reads this file
+          echo '{"args": ["--no-sandbox"]}' > .puppeteer.json
+          mkdir -p dist
+          PATH="$PWD/node_modules/.bin:$PATH" \
+            pandoc presentation.md -t revealjs -s -F mermaid-filter -o dist/index.html
+          cp -r assets dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: slides
+          path: dist/
