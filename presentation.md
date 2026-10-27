@@ -8,9 +8,9 @@ date: 2026-10-27
 # Lambda?
 
 - What are they?
-- What are they good for?
-- What are they not good for?
 - Deploying Hello World
+- Caveats
+- What are they good (and not good) for?
 
 # First
 
@@ -222,18 +222,6 @@ It's still a VM, despite responding really quickly.
 - API Gateway
 - etc
 
-# What they're good for
-
-- Very bursty services
-- Event driven architectures
-- Simple isolated functionalities
-
-# What they're not great at
-
-- Predictable & sustained loads
-- Complex/unsupported run-times
-- Software with high start-up times
-
 # Responsibilities
 
 ## Them
@@ -297,3 +285,89 @@ Failure, Success, or both
 # Hello World
 
 Let's deploy something
+
+## Deploy
+
+```sh
+cd hello-world
+terraform init
+terraform apply -var prefix=my-demo
+```
+
+## Invoke via API
+
+```sh
+aws lambda invoke \
+  --function-name $(terraform output -raw function_name) \
+  --cli-binary-format raw-in-base64-out \
+  --payload '{"hello": "world"}' \
+  response.json
+```
+
+```sh
+aws logs tail $(terraform output -raw log_group) --follow
+```
+
+## Invoke via S3
+
+```sh
+echo hi > hello.txt
+aws s3 cp hello.txt s3://$(terraform output -raw bucket)/
+```
+
+```sh
+aws logs tail $(terraform output -raw log_group) --follow
+```
+
+## Clean up
+
+```sh
+terraform destroy -var prefix=my-demo
+```
+
+# Caveats
+
+## Cold starts
+
+New execution environment = start a microVM, load your code, run your init.
+
+- Python / Node: ~100ms - 1s
+- Java / .NET: can be several seconds
+- Happens on every scale-out, not just the first call
+
+Mitigations: small packages, SnapStart, provisioned concurrency ($)
+
+## 15 minute max
+
+- Hard limit on execution time
+- Long jobs need to be split up
+  - Step Functions, SQS, etc
+- Or moved elsewhere (ECS, Batch, EC2)
+
+## Package size
+
+- 50MB zipped (direct upload)
+- 250MB unzipped, including layers
+
+Data libraries eat this fast: Polars, pandas, numpy, pyarrow...
+
+Escape hatch: container images, up to 10GB
+
+## Memory & CPU
+
+- 10GB RAM maximum
+- 6 vCPU maximum (CPU scales with RAM)
+
+Big in-memory jobs don't fit.
+
+# What they're not great at
+
+- Predictable & sustained loads
+- Complex/unsupported run-times
+- Software with high start-up times
+
+# What they're good for
+
+- Very bursty services
+- Event driven architectures
+- Simple isolated functionalities
