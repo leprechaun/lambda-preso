@@ -65,6 +65,42 @@ resource "aws_lambda_function" "handler" {
   ]
 }
 
+# --- Failure destination ---
+
+resource "aws_sqs_queue" "failures" {
+  name = "${var.prefix}-failures"
+}
+
+# Lambda delivers to the destination using the function's own role
+resource "aws_iam_role_policy" "send_failures" {
+  name = "send-failures"
+  role = aws_iam_role.lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "sqs:SendMessage"
+      Resource = aws_sqs_queue.failures.arn
+    }]
+  })
+}
+
+resource "aws_lambda_function_event_invoke_config" "handler" {
+  function_name = aws_lambda_function.handler.function_name
+
+  # No retries, so failures show up in the queue immediately (default is 2)
+  maximum_retry_attempts = 0
+
+  destination_config {
+    on_failure {
+      destination = aws_sqs_queue.failures.arn
+    }
+  }
+
+  depends_on = [aws_iam_role_policy.send_failures]
+}
+
 # --- S3 trigger ---
 
 resource "aws_s3_bucket" "uploads" {

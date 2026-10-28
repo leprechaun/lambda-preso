@@ -9,3 +9,7 @@ output "function_name" {
 output "log_group" {
   value = aws_cloudwatch_log_group.lambda.name
 }
+
+output "failures_queue_url" {
+  value = aws_sqs_queue.failures.url
+}
