@@ -73,6 +73,20 @@ resource "aws_s3_bucket" "uploads" {
   force_destroy = true
 }
 
+resource "aws_iam_role_policy" "read_uploads" {
+  name = "read-uploads"
+  role = aws_iam_role.lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "s3:GetObject"
+      Resource = "${aws_s3_bucket.uploads.arn}/*"
+    }]
+  })
+}
+
 resource "aws_lambda_permission" "s3" {
   statement_id   = "AllowS3Invoke"
   action         = "lambda:InvokeFunction"
