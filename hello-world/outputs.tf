@@ -13,3 +13,7 @@ output "log_group" {
 output "failures_queue_url" {
   value = aws_sqs_queue.failures.url
 }
+
+output "caller_arn" {
+  value = data.aws_caller_identity.current.arn
+}

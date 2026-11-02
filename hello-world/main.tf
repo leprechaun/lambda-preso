@@ -19,6 +19,10 @@ provider "aws" {
 
 data "aws_caller_identity" "current" {}
 
+locals {
+  prefix = regex("[^/:]+$", data.aws_caller_identity.current.arn)
+}
+
 # --- Lambda ---
 
 data "archive_file" "lambda" {
@@ -28,7 +32,7 @@ data "archive_file" "lambda" {
 }
 
 resource "aws_iam_role" "lambda" {
-  name = "${var.prefix}-lambda"
+  name = "${local.prefix}-lambda"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -47,28 +51,36 @@ resource "aws_iam_role_policy_attachment" "logs" {
 
 # Created explicitly so `terraform destroy` cleans it up
 resource "aws_cloudwatch_log_group" "lambda" {
-  name              = "/aws/lambda/${var.prefix}-handler"
+  name              = "/aws/lambda/${local.prefix}-handler"
   retention_in_days = 7
 }
 
 resource "aws_lambda_function" "handler" {
-  function_name    = "${var.prefix}-handler"
+  function_name    = "${local.prefix}-handler"
   role             = aws_iam_role.lambda.arn
   runtime          = "python3.13"
   handler          = "handler.handler"
-  filename         = data.archive_file.lambda.output_path
+  memory_size      = 128
+  filename        = data.archive_file.lambda.output_path
   source_code_hash = data.archive_file.lambda.output_base64sha256
+
+  environment {
+    variables = {
+      LOG_LEVEL   = "info"
+    }
+  }
 
   depends_on = [
     aws_iam_role_policy_attachment.logs,
     aws_cloudwatch_log_group.lambda,
   ]
+
 }
 
 # --- Failure destination ---
 
 resource "aws_sqs_queue" "failures" {
-  name = "${var.prefix}-failures"
+  name = "${local.prefix}-failures"
 }
 
 # Lambda delivers to the destination using the function's own role
@@ -105,7 +117,7 @@ resource "aws_lambda_function_event_invoke_config" "handler" {
 
 resource "aws_s3_bucket" "uploads" {
   # Bucket names are global; the account ID keeps them unique
-  bucket        = "${var.prefix}-uploads-${data.aws_caller_identity.current.account_id}"
+  bucket        = "${local.prefix}-uploads-${data.aws_caller_identity.current.account_id}"
   force_destroy = true
 }
 

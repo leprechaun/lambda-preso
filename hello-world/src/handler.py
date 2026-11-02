@@ -8,6 +8,7 @@ s3 = boto3.client("s3")
 
 def handler(event, context):
     print(json.dumps(event))
+    print(json.dumps(context, default=str))
 
     for record in event["Records"]:
         bucket = record["s3"]["bucket"]["name"]
@@ -19,3 +20,4 @@ def handler(event, context):
 
         print(f"--- s3://{bucket}/{key} ---")
         print(body)
+        print("we're done")
